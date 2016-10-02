@@ -1,3 +1,6 @@
+# This gets the ESPN fantasy football projections for the 2016 season by week
+# Usage: >python fantasy.py {week}
+
 import pandas as pd
 import requests
 import sys
@@ -6,9 +9,13 @@ from datetime import datetime, date
 from collections import defaultdict
 from enum import Enum
 
-ACTUAL_PTS_URL = "http://games.espn.com/ffl/leaders?&scoringPeriodId={0}&seasonId=2016{1}&slotCategoryId={2}"
-PREDICTED_PTS_URL = "http://games.espn.go.com/ffl/tools/projections?&leagueId=0&scoringPeriodId={0}&seasonId=2016{1}"
+YEAR = "2016"
 
+ACTUAL_PTS_URL = "http://games.espn.com/ffl/leaders?&scoringPeriodId={0}&seasonId=" + YEAR + "{1}&slotCategoryId={2}"
+#ACTUAL_PTS_URL = "http://games.espn.com/ffl/leaders?&scoringPeriodId={0}&seasonId=" + YEAR + "{1}{2}"#&slotCategoryId={2}"
+PREDICTED_PTS_URL = "http://games.espn.go.com/ffl/tools/projections?&leagueId=0&scoringPeriodId={0}&seasonId=" + YEAR + "{1}"
+
+# The value ESPN gives the position in the URL
 class Position(Enum):
     QB = 0
     RB = 2
@@ -17,11 +24,13 @@ class Position(Enum):
     DST = 16
     K = 17
 
-
+# Gets the fantasy point total
+# Returns a dict indexed by player with values of points and his position
 def get_actual(number):
     print("Getting actual points...")
     pages = ["&startIndex=0", "&startIndex=50", "&startIndex=100"] 
     position = [Position.QB.value, Position.RB.value, Position.WR.value, Position.TE.value, Position.DST.value, Position.K.value]
+    #position = ["&slotCategoryId=0", "&slotCategoryId=2", "&slotCategoryId=4", "&slotCategoryId=6","&slotCategoryId=16", "&slotCategoryId=17"]
 
     result = defaultdict(dict)
 
@@ -34,28 +43,29 @@ def get_actual(number):
             rows = table.findAll(['tr'])
 
             if pos == Position.QB.value:
-                pos = "QB"
+                player_pos = "QB"
             elif pos == Position.RB.value:
-                pos = "RB"
+                player_pos = "RB"
             elif pos == Position.WR.value:
-                pos = "WR"
+                player_pos = "WR"
             elif pos == Position.TE.value:
-                pos = "TE"
+                player_pos = "TE"
             elif pos == Position.DST.value:
-                pos = "DST"
+                player_pos = "DST"
             elif pos == Position.K.value:
-                pos = "K"
+                player_pos = "K"
 
             for row in rows[3:]:
                 try:
                     name = row.findAll(['td'])[0].a.string
                     points = float(row.findAll(['td'])[23].string)
+                    result[name] = points, player_pos
                 except IndexError:
                     pass
-                result[name] = points, pos
+                #result[name] = points, pos
     return result
 
-
+# Returns a dict of the player and their projected points
 def get_projected(number):
     print("Getting projections...")
     pages = ["", "&startIndex=40", "&startIndex=80", "&startIndex=120", "&startIndex=160", "&startIndex=200", "&startIndex=240"] 
@@ -82,6 +92,7 @@ def get_projected(number):
                 result[names] = value 
     return result
 
+# Writes the projected and predicted to a dataframe
 def get_dataframe(result1, result2):
     print("Writing dataframe...")
     df1 = pd.DataFrame.from_dict(result1, orient='index')
@@ -102,4 +113,10 @@ def main(week):
     make_csv(df, week)
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    try:
+        if 1 <= int(sys.argv[1]) <= 16:
+            main(sys.argv[1])
+        else:
+            raise ValueError("Enter a week between 1 and 16")
+    except IndexError as e:
+        print("Not enough arguments") 
