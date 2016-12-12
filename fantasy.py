@@ -1,5 +1,5 @@
 # This gets the ESPN fantasy football projections for the 2016 season by week
-# Usage: >python fantasy.py {week}
+# Usage: $ python fantasy.py {week}
 
 import pandas as pd
 import requests
@@ -12,7 +12,6 @@ from enum import Enum
 YEAR = "2016"
 
 ACTUAL_PTS_URL = "http://games.espn.com/ffl/leaders?&scoringPeriodId={0}&seasonId=" + YEAR + "{1}&slotCategoryId={2}"
-#ACTUAL_PTS_URL = "http://games.espn.com/ffl/leaders?&scoringPeriodId={0}&seasonId=" + YEAR + "{1}{2}"#&slotCategoryId={2}"
 PREDICTED_PTS_URL = "http://games.espn.go.com/ffl/tools/projections?&leagueId=0&scoringPeriodId={0}&seasonId=" + YEAR + "{1}"
 
 # The value ESPN gives the position in the URL
@@ -30,12 +29,10 @@ def get_actual(number):
     print("Getting actual points...")
     pages = ["&startIndex=0", "&startIndex=50", "&startIndex=100"] 
     position = [Position.QB.value, Position.RB.value, Position.WR.value, Position.TE.value, Position.DST.value, Position.K.value]
-    #position = ["&slotCategoryId=0", "&slotCategoryId=2", "&slotCategoryId=4", "&slotCategoryId=6","&slotCategoryId=16", "&slotCategoryId=17"]
 
     result = defaultdict(dict)
 
     for pos in position:
-        print(pos)
         for page in pages:
             r = requests.get(ACTUAL_PTS_URL.format(number, page, pos))
             bs = BeautifulSoup(r.text)
@@ -62,7 +59,6 @@ def get_actual(number):
                     result[name] = points, player_pos
                 except IndexError:
                     pass
-                #result[name] = points, pos
     return result
 
 # Returns a dict of the player and their projected points
@@ -86,7 +82,6 @@ def get_projected(number):
             for point in points:
                 try:
                     value = float(point.string)
-                    #print(point.string)
                 except (TypeError, ValueError) as e:
                     value = 0.0 
                 result[names] = value 
@@ -111,6 +106,7 @@ def main(week):
     actual = get_actual(week)
     df = get_dataframe(projected, actual)
     make_csv(df, week)
+    print("Done!")
 
 if __name__ == '__main__':
     try:
